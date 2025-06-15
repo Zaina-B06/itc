@@ -1,13 +1,10 @@
 import streamlit as st
-from datetime import datetime, timedelta
-import pandas as pd
-import mysql.connector
 from mysql.connector import Error
+import mysql.connector
 import os
 from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
+from datetime import datetime, timedelta
+import pandas as pd
 
 class GSTDatabase:
     def __init__(self):
@@ -15,17 +12,35 @@ class GSTDatabase:
     
     def connect(self):
         try:
+            # Try Streamlit secrets first (for production)
+            try:
+                config = {
+                    "host": st.secrets["DB_HOST"],
+                    "user": st.secrets["DB_USER"],
+                    "password": st.secrets["DB_PASSWORD"],
+                    "database": st.secrets["DB_NAME"]
+                }
+            except:
+                # Fall back to .env (for local development)
+                load_dotenv()
+                config = {
+                    "host": os.getenv("DB_HOST"),
+                    "user": os.getenv("DB_USER"),
+                    "password": os.getenv("DB_PASSWORD"),
+                    "database": os.getenv("DB_NAME")
+                }
+
             self.connection = mysql.connector.connect(
-                host=os.getenv("DB_HOST", "localhost"),
-                user=os.getenv("DB_USER"),
-                password=os.getenv("DB_PASSWORD"),
-                database=os.getenv("DB_NAME")
+                **config,
+                port=3306,
+                auth_plugin='mysql_native_password',
+                connect_timeout=5
             )
             self._ensure_columns_exist()
             return self.connection
         except Error as e:
-            st.error("Database connection failed. Please check your connection settings.")
-            return None
+            st.error("Database connection failed. Please check your settings.")
+            st.stop()
     
     def _ensure_columns_exist(self):
         """Ensure required columns exist in the table"""
