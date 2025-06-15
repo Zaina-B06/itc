@@ -1,4 +1,4 @@
 streamlit
 pandas
 python-dotenv
-pymysql
+mysql-connector-python
